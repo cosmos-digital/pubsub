@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	pubsub "bitbucket.org/cosmos-digital/pubsub"
+	pubsub "github.com/cosmos-digital/pubsub"
 )
 
 func main() {

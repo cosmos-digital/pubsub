@@ -1,4 +1,4 @@
-module bitbucket.org/cosmos-digital/pubsub
+module github.com/cosmos-digital/pubsub
 
 go 1.18
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	pubsub "bitbucket.org/cosmos-digital/pubsub/internal"
+	pubsub "github.com/cosmos-digital/pubsub/internal"
 )
 
 type Message = pubsub.Message
