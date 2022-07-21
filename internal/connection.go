@@ -22,7 +22,5 @@ func (c *Connection) Connect(ctx context.Context) (*Instance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
-	return &Instance{
-		client: client,
-	}, nil
+	return NewInstance(client), nil
 }

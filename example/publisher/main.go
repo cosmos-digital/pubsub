@@ -4,13 +4,13 @@ import (
 	"context"
 	"os"
 
-	pubsub "github.com/cosmos-digital/pubsub"
+	"github.com/cosmos-digital/pubsub/publisher"
 )
 
 func main() {
 	os.Setenv("PUBSUB_EMULATOR_HOST", "localhost:8538")
 	ctx := context.Background()
-	publisher, err := pubsub.NewPublisher(ctx, "project-test", "topic-test")
+	publisher, err := publisher.New(ctx, "project-test", "topic-test")
 	if err != nil {
 		panic(err)
 	}

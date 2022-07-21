@@ -20,6 +20,12 @@ type Instance struct {
 	client *pubsub.Client
 }
 
+func NewInstance(client *pubsub.Client) *Instance {
+	return &Instance{
+		client: client,
+	}
+}
+
 type Message = *pubsub.Message
 
 type Handler func(ctx context.Context, msg *pubsub.Message) error
