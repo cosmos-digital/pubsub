@@ -25,7 +25,6 @@ func (s *Subscriber) Consume(ctx context.Context) error {
 	for subscriptionName, handler := range s.handler {
 		subscription, err := s.instance.GetSubscription(ctx, subscriptionName)
 		if err != nil {
-			s.Stop()
 			return fmt.Errorf("failed to get subscription %s: %w", subscription, err)
 		}
 		wg.Add(1)
