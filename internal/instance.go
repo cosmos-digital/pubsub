@@ -15,18 +15,19 @@ type Client interface {
 	CreateSubscription(ctx context.Context, id string, config pubsub.SubscriptionConfig) (*pubsub.Subscription, error)
 	Close() error
 }
-
+type Subscription = pubsub.Subscription
+type Topic = pubsub.Topic
 type Instance struct {
-	client *pubsub.Client
+	client Client
 }
 
-func NewInstance(client *pubsub.Client) *Instance {
+func New(client Client) *Instance {
 	return &Instance{
 		client: client,
 	}
 }
 
-type Message = *pubsub.Message
+type Message = pubsub.Message
 
 type Handler func(ctx context.Context, msg *pubsub.Message) error
 
@@ -35,15 +36,6 @@ func (i *Instance) Close() error {
 		return fmt.Errorf("failed to close client: %w", err)
 	}
 	return nil
-}
-
-func (i *Instance) Subscriber() *Subscriber {
-	return &Subscriber{
-		instance: i,
-		handler:  make(map[string]Handler),
-		done:     make(chan bool),
-		log:      make(chan string),
-	}
 }
 
 func (i *Instance) GetSubscription(ctx context.Context, name string) (*pubsub.Subscription, error) {
@@ -61,7 +53,7 @@ func (i *Instance) GetSubscription(ctx context.Context, name string) (*pubsub.Su
 	return subscription, nil
 }
 
-func (i *Instance) CreateSubscription(ctx context.Context, name string, topic *pubsub.Topic) (*pubsub.Subscription, error) {
+func (i *Instance) CreateSubscription(ctx context.Context, name string, topic *Topic) (*pubsub.Subscription, error) {
 	_, err := i.GetSubscription(ctx, name)
 	if err != nil && !errors.Is(err, ErrSubscriptionNotFound{}) {
 		return nil, fmt.Errorf("failed to get subscription %s: %w", name, err)
@@ -76,13 +68,6 @@ func (i *Instance) CreateSubscription(ctx context.Context, name string, topic *p
 	}
 
 	return subscription, nil
-}
-
-func (i *Instance) Publisher(topicName string) *Publisher {
-	return &Publisher{
-		instance: i,
-		topic:    topicName,
-	}
 }
 
 func (i *Instance) GetTopic(ctx context.Context, name string) (*pubsub.Topic, error) {
