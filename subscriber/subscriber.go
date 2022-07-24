@@ -8,15 +8,15 @@ import (
 	pubsub "github.com/cosmos-digital/pubsub/internal"
 )
 
-type Subscriber struct {
+type Client struct {
 	instance *pubsub.Instance
 	handler  map[string]pubsub.Handler
 	log      chan string
 	done     chan bool
 }
 
-func New(ctx context.Context, instance *pubsub.Instance) (*Subscriber, error) {
-	return &Subscriber{
+func New(ctx context.Context, instance *pubsub.Instance) (*Client, error) {
+	return &Client{
 		instance: instance,
 		handler:  make(map[string]pubsub.Handler),
 		log:      make(chan string),
@@ -24,12 +24,12 @@ func New(ctx context.Context, instance *pubsub.Instance) (*Subscriber, error) {
 	}, nil
 }
 
-func (s *Subscriber) AddHandler(subscription string, handler pubsub.Handler) *Subscriber {
+func (s *Client) AddHandler(subscription string, handler pubsub.Handler) *Client {
 	s.handler[subscription] = handler
 	return s
 }
 
-func (s *Subscriber) Consume(ctx context.Context, wg *sync.WaitGroup) error {
+func (s *Client) Consume(ctx context.Context, wg *sync.WaitGroup) error {
 	for subscriptionName, handler := range s.handler {
 		wg.Add(1)
 		subscription, err := s.instance.GetSubscription(ctx, subscriptionName)
@@ -54,7 +54,7 @@ func (s *Subscriber) Consume(ctx context.Context, wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (s *Subscriber) Stop() error {
+func (s *Client) Stop() error {
 	if err := s.instance.Close(); err != nil {
 		return fmt.Errorf("failed to close client: %w", err)
 	}
@@ -62,11 +62,11 @@ func (s *Subscriber) Stop() error {
 	return nil
 }
 
-func (s *Subscriber) Log() chan string {
+func (s *Client) Log() chan string {
 	return s.log
 }
 
-func (s *Subscriber) Close() error {
+func (s *Client) Close() error {
 	err := s.instance.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close client: %w", err)
@@ -75,6 +75,6 @@ func (s *Subscriber) Close() error {
 	close(s.done)
 	return nil
 }
-func (s *Subscriber) Done() <-chan bool {
+func (s *Client) Done() <-chan bool {
 	return s.done
 }

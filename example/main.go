@@ -98,7 +98,7 @@ func main() {
 	}()
 
 	wg.Add(1)
-	go func(sub *subscriber.Subscriber, wg *sync.WaitGroup) {
+	go func(sub *subscriber.Client, wg *sync.WaitGroup) {
 		defer wg.Done()
 		time.Sleep(timeWaitForMessages)
 		if err := sub.Stop(); err != nil {
