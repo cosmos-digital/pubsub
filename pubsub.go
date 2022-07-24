@@ -39,12 +39,12 @@ func NewSubscriber(ctx context.Context, projectID string) (*subscriber.Client, e
 	return subscriber, nil
 }
 
-func NewPublisher(ctx context.Context, projectID, topic string) (*publisher.Client, error) {
+func NewPublisher(ctx context.Context, projectID string) (*publisher.Client, error) {
 	instance, err := New(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance: %w", err)
 	}
-	publisher, err := publisher.New(ctx, instance, topic)
+	publisher, err := publisher.New(ctx, instance)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create publisher: %w", err)
 	}

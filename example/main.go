@@ -60,7 +60,7 @@ func main() {
 		}
 	}
 
-	publisher, err := publisher.New(ctx, instance, topic.ID())
+	publisher, err := publisher.New(ctx, instance)
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +85,7 @@ func main() {
 			fmt.Println("finished publishing")
 		}()
 		for i := 0; i < numberOfMessages; i++ {
-			if err := publisher.Publish(ctx, []byte(fmt.Sprint("Hello, World! ", i))); err != nil {
+			if err := publisher.Publish(ctx, topic.ID(), []byte(fmt.Sprint("Hello, World! ", i))); err != nil {
 				panic(err)
 			}
 		}

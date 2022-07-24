@@ -9,18 +9,16 @@ import (
 
 type Client struct {
 	instance *pubsub.Instance
-	topic    string
 }
 
-func New(ctx context.Context, instance *pubsub.Instance, topic string) (*Client, error) {
+func New(ctx context.Context, instance *pubsub.Instance) (*Client, error) {
 	return &Client{
 		instance: instance,
-		topic:    topic,
 	}, nil
 }
 
-func (p *Client) Publish(ctx context.Context, message []byte) error {
-	topic, err := p.instance.GetTopic(ctx, p.topic)
+func (p *Client) Publish(ctx context.Context, topicName string, message []byte) error {
+	topic, err := p.instance.GetTopic(ctx, topicName)
 	if err != nil {
 		return fmt.Errorf("failed to get topic: %w", err)
 	}
