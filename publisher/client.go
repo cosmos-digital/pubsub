@@ -17,11 +17,7 @@ func New(ctx context.Context, instance *pubsub.Instance) (*Client, error) {
 	}, nil
 }
 
-func (p *Client) Publish(ctx context.Context, topicName string, message []byte) error {
-	topic, err := p.instance.GetTopic(ctx, topicName)
-	if err != nil {
-		return fmt.Errorf("failed to get topic: %w", err)
-	}
+func (p *Client) Publish(ctx context.Context, topic *pubsub.Topic, message []byte) error {
 	result := topic.Publish(ctx, &pubsub.Message{
 		Data: message,
 	})
