@@ -35,3 +35,11 @@ func (p *Client) Close() error {
 	}
 	return nil
 }
+
+func (p *Client) GetTopic(ctx context.Context, topic string) (*pubsub.Topic, error) {
+	t, err := p.instance.GetTopic(ctx, topic)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get topic: %w", err)
+	}
+	return t, nil
+}
