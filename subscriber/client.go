@@ -78,3 +78,10 @@ func (s *Client) Close() error {
 func (s *Client) Done() <-chan bool {
 	return s.done
 }
+func (s *Client) GetSubscription(ctx context.Context, subscription string) (*pubsub.Subscription, error) {
+	sub, err := s.instance.GetSubscription(ctx, subscription)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get subscription %s: %w", subscription, err)
+	}
+	return sub, nil
+}
