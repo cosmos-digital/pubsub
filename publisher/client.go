@@ -17,10 +17,8 @@ func New(ctx context.Context, instance *pubsub.Instance) (*Client, error) {
 	}, nil
 }
 
-func (p *Client) Publish(ctx context.Context, topic *pubsub.Topic, message []byte) error {
-	result := topic.Publish(ctx, &pubsub.Message{
-		Data: message,
-	})
+func (p *Client) Publish(ctx context.Context, topic *pubsub.Topic, message *pubsub.Message) error {
+	result := topic.Publish(ctx, message)
 	id, err := result.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("pubsub.Publish: %v", err)

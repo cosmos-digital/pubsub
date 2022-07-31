@@ -87,7 +87,10 @@ func main() {
 			wg.Done()
 		}()
 		for i := 0; i < numberOfMessages; i++ {
-			if err := publisher.Publish(ctx, topic, []byte(fmt.Sprint("Hello, World! ", i))); err != nil {
+			if err := publisher.Publish(ctx, topic, &pubsub.Message{
+				Data: []byte(fmt.Sprint("Hello, World! ", i)),
+			},
+			); err != nil {
 				panic(err)
 			}
 		}
