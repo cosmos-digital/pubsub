@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos-digital/pubsub"
 	"github.com/cosmos-digital/pubsub/publisher"
 	"github.com/cosmos-digital/pubsub/subscriber"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -70,19 +71,20 @@ func main() {
 		panic(err)
 	}
 
-	sub.AddHandler(
+	sub.AddConsumer(
 		subscription.ID(),
-		func(_ context.Context, msg *pubsub.Message) error {
+		func(ctx context.Context, msg *pubsub.Message) error {
 			fmt.Println(string(msg.Data))
 			return nil
 		},
 	)
 
 	var wg sync.WaitGroup
-
+	wg.Add(1)
 	go func() {
 		defer func() {
 			fmt.Println("finished publishing")
+			wg.Done()
 		}()
 		for i := 0; i < numberOfMessages; i++ {
 			if err := publisher.Publish(ctx, topic, []byte(fmt.Sprint("Hello, World! ", i))); err != nil {
@@ -91,32 +93,30 @@ func main() {
 		}
 	}()
 
-	go func() {
-		if err := sub.Consume(ctx, &wg); err != nil {
-			panic(err)
-		}
-	}()
-
 	wg.Add(1)
-	go func(sub *subscriber.Client, wg *sync.WaitGroup) {
+	go func() {
 		defer wg.Done()
 		time.Sleep(timeWaitForMessages)
 		if err := sub.Stop(); err != nil {
 			panic(err)
 		}
-
-	}(sub, &wg)
+	}()
+	if sub.Start() != nil {
+		panic(err)
+	}
 
 	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case log := <-sub.Log():
-				fmt.Println(log)
-			case <-sub.Done():
-				return
-			default:
-				continue
+		for _, ch := range sub.Channels() {
+			for {
+				select {
+				case log := <-ch:
+					if log.Err != nil {
+						logrus.WithError(log.Err).Error(log.Consumer)
+					}
+				case <-ctx.Done():
+					fmt.Println("context done")
+					return
+				}
 			}
 		}
 	}()

@@ -3,67 +3,99 @@ package subscriber
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	pubsub "github.com/cosmos-digital/pubsub/internal"
 )
 
+type logger struct {
+	Consumer string
+	Err      error
+}
+type consumer struct {
+	handler pubsub.Handler
+	done    chan bool
+}
+
 type Client struct {
-	instance *pubsub.Instance
-	handler  map[string]pubsub.Handler
-	log      chan string
-	done     chan bool
+	instance  *pubsub.Instance
+	consumers map[string]consumer
+	channels  map[string]chan logger
+	ctx       context.Context
+	done      chan bool
 }
 
 func New(ctx context.Context, instance *pubsub.Instance) (*Client, error) {
 	return &Client{
-		instance: instance,
-		handler:  make(map[string]pubsub.Handler),
-		log:      make(chan string),
-		done:     make(chan bool),
+		instance:  instance,
+		consumers: make(map[string]consumer),
+		done:      make(chan bool),
+		ctx:       ctx,
 	}, nil
 }
 
-func (s *Client) AddHandler(subscription string, handler pubsub.Handler) *Client {
-	s.handler[subscription] = handler
+func (s *Client) AddConsumer(subscription string, handler pubsub.Handler) *Client {
+	s.consumers[subscription] = consumer{
+		handler: handler,
+		done:    make(chan bool),
+	}
 	return s
 }
 
-func (s *Client) Consume(ctx context.Context, wg *sync.WaitGroup) error {
-	for subscriptionName, handler := range s.handler {
-		wg.Add(1)
-		subscription, err := s.instance.GetSubscription(ctx, subscriptionName)
+func (s *Client) Start() error {
+	s.channels = make(map[string]chan logger, len(s.consumers))
+	for subscription, consumer := range s.consumers {
+		subscription, err := s.instance.GetSubscription(s.ctx, subscription)
 		if err != nil {
 			return fmt.Errorf("failed to get subscription %s: %w", subscription, err)
 		}
-		go func(ctx context.Context, wg *sync.WaitGroup, subscription *pubsub.Subscription, handler pubsub.Handler) {
-			defer wg.Done()
-			s.log <- fmt.Sprintf("pull message of subscription %s...", subscription.ID())
-			if err := subscription.Receive(ctx, func(ctx context.Context, message *pubsub.Message) {
-				if err := handler(ctx, message); err != nil {
-					s.log <- fmt.Sprint("pubsub handler err: ", err.Error())
+
+		channel := make(chan logger)
+		s.channels[subscription.ID()] = channel
+
+		go func(subscription *pubsub.Subscription, handler pubsub.Handler) {
+			logger := logger{
+				Consumer: subscription.ID(),
+			}
+			err = subscription.Receive(s.ctx, func(ctx context.Context, message *pubsub.Message) {
+				if err = handler(ctx, message); err != nil {
+					logger.Err = err
+					channel <- logger
 					message.Nack()
 				}
 				message.Ack()
-			}); err != nil {
-				s.log <- fmt.Sprint("pubsub receive err: ", err.Error())
-				s.done <- true
+			})
+			if err != nil {
+				logger.Err = err
+				channel <- logger
 			}
-		}(ctx, wg, subscription, handler)
+		}(subscription, consumer.handler)
+
 	}
 	return nil
+}
+
+func (c *Client) Channels() map[string]chan logger {
+	return c.channels
+}
+
+func (s *Client) Loggers() {
+	for _, channel := range s.channels {
+		go func(ch <-chan logger) {
+			for log := range ch {
+				fmt.Println("consumer channel closed", log.Err.Error())
+			}
+		}(channel)
+	}
 }
 
 func (s *Client) Stop() error {
-	if err := s.instance.Close(); err != nil {
-		return fmt.Errorf("failed to close client: %w", err)
+	_, ok := <-s.done
+	if !ok {
+		return fmt.Errorf("client already stopped")
 	}
 	s.done <- true
 	return nil
-}
 
-func (s *Client) Log() chan string {
-	return s.log
 }
 
 func (s *Client) Close() error {
@@ -71,13 +103,9 @@ func (s *Client) Close() error {
 	if err != nil {
 		return fmt.Errorf("failed to close client: %w", err)
 	}
-	close(s.log)
-	close(s.done)
 	return nil
 }
-func (s *Client) Done() <-chan bool {
-	return s.done
-}
+
 func (s *Client) GetSubscription(ctx context.Context, subscription string) (*pubsub.Subscription, error) {
 	sub, err := s.instance.GetSubscription(ctx, subscription)
 	if err != nil {
